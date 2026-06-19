@@ -1,0 +1,5 @@
+# One URL per line. Blank lines and lines starting with # are ignored.
+https://slimvials.com/collections/all-products
+https://slimvials.com/products/mounjaro%C2%AE-injectable-pen-copy-copy-copy
+https://slimvials.com/products/retatrutide-synedica
+https://slimvials.com/products/vls-retatrutide-20-mg-prefilled-pen
