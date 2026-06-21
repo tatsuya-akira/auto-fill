@@ -1,0 +1,11 @@
+{
+  "profile_name": "priority-test",
+  "template_match": "templates/us_label.txt",
+  "rules": [
+    {"[DOMAIN]": "json-domain.test"},
+    {"[USER]": "json-user"},
+    {"[the seller]": "json-seller"},
+    {"[NAME ON PRODUCT LABEL]": "json-label"},
+    {"[LIST URL FOR SPECIFIC ACTION]": "https://custom.example/a\nhttps://custom.example/b"}
+  ]
+}

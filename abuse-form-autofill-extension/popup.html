@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Abuse Form Autofill Mapper</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <h1>Abuse Form Autofill</h1>
+    <div id="status" class="status">Loading...</div>
+  </header>
+
+  <section class="card current">
+    <div class="row">
+      <label>Current form URL</label>
+      <input id="currentUrl" readonly />
+    </div>
+    <div class="row two">
+      <div>
+        <label>Active saved profile</label>
+        <select id="profileSelect"></select>
+      </div>
+      <div>
+        <label>Queued payload</label>
+        <select id="queueSelect"></select>
+      </div>
+    </div>
+    <div class="row compact-grid">
+      <label class="inlineCheck"><input type="checkbox" id="autoFillOnPageLoad" /> Auto-fill on page load using latest queue + last used profile</label>
+      <label class="inlineCheck"><input type="checkbox" id="useLatestQueueOnFill" /> Auto-load latest Python queue before manual fill</label>
+      <button id="oneClickFillBtn" class="primary">Manual: latest queue + last profile + fill</button>
+    </div>
+    <div class="row compact-grid">
+      <button id="scanBtn">Scan fields</button>
+      <button id="refreshProfileBtn">Match URL profile</button>
+      <button id="newProfileBtn">New profile</button>
+      <button id="fillBtn" class="primary">Fill current page</button>
+    </div>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="dataTab">Generated data</button>
+    <button class="tab" data-tab="queueTab">Bridge queue</button>
+    <button class="tab" data-tab="profileTab">URL rule profile</button>
+    <button class="tab" data-tab="fieldsTab">Detected fields</button>
+    <button class="tab" data-tab="jsonTab">JSON import/export</button>
+  </nav>
+
+  <main>
+    <section id="dataTab" class="tab-panel active">
+      <div class="card">
+        <h2>1) Paste Python output</h2>
+        <p class="hint">Paste the full JSON from the Python GUI/CLI. The extension will read <code>extension_payload.fill_values</code>, <code>fill_values</code>, or the top-level keys.</p>
+        <textarea id="generatedJson" spellcheck="false" placeholder='Paste JSON here, e.g. {"extension_payload":{"fill_values":{"notice_text":"..."}}}'></textarea>
+        <div class="row compact-grid">
+          <button id="parseDataBtn">Parse data</button>
+          <button id="clearDataBtn">Clear data</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Available generated keys</h2>
+        <div id="dataKeys" class="chips empty">No data parsed yet.</div>
+      </div>
+    </section>
+
+    <section id="queueTab" class="tab-panel">
+      <div class="card">
+        <h2>Python bridge queue</h2>
+        <p class="hint">Start the Python GUI bridge, click <strong>Queue mapped</strong> in Python. The extension can auto-load the newest queued payload before filling.</p>
+        <div class="row two">
+          <div>
+            <label>Bridge URL</label>
+            <input id="bridgeUrl" placeholder="http://127.0.0.1:8765" />
+          </div>
+          <div>
+            <label>Selected queue item</label>
+            <input id="selectedQueueTitle" readonly />
+          </div>
+        </div>
+        <div class="row compact-grid">
+          <button id="refreshQueueBtn">Refresh queue</button>
+          <button id="useQueueBtn" class="primary">Use selected as generated data</button>
+          <button id="deleteQueueBtn" class="danger">Delete selected</button>
+          <button id="clearQueueBtn" class="danger">Clear queue</button>
+        </div>
+      </div>
+
+      <div class="card grow">
+        <h2>Queued payloads</h2>
+        <table id="queueTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Domain</th>
+              <th>Template</th>
+              <th>Title</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <section id="profileTab" class="tab-panel">
+      <div class="card">
+        <h2>2) Rule profile for this abuse form</h2>
+        <div class="row two">
+          <div>
+            <label>Select saved profile</label>
+            <select id="profileSelectProfileTab"></select>
+          </div>
+          <div>
+            <label>Automation note</label>
+            <input readonly value="On popup open, the extension loads the previously used profile first. URL match is available as fallback/manual action." />
+          </div>
+        </div>
+        <div class="row two">
+          <div>
+            <label>Profile name</label>
+            <input id="profileName" placeholder="Example: Cloudflare abuse form" />
+          </div>
+          <div>
+            <label>URL match pattern</label>
+            <input id="profilePattern" placeholder="https://example.com/abuse*" />
+          </div>
+        </div>
+        <p class="hint">Pattern supports <code>*</code>. Use the current abuse form URL or a stable wildcard like <code>https://registrar.example/*/abuse*</code>.</p>
+        <div class="row compact-grid">
+          <button id="useCurrentUrlBtn">Use current URL</button>
+          <button id="useCurrentOriginBtn">Use current origin/*</button>
+          <button id="saveProfileBtn" class="primary">Save profile</button>
+          <button id="deleteProfileBtn" class="danger">Delete profile</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3) Add mapping rule</h2>
+        <p class="hint">Each saved rule can use a value generated by Python, a fixed value, or a template that mixes both. This means fields like name/email/category can stay fixed while message/domain/URL come from the queued Python payload.</p>
+        <div class="row three">
+          <div>
+            <label>Input id</label>
+            <select id="ruleFieldId"></select>
+          </div>
+          <div>
+            <label>Value source</label>
+            <select id="ruleSource">
+              <option value="generated">Generated from Python</option>
+              <option value="fixed">Fixed value saved in profile</option>
+              <option value="template">Template / mixed value</option>
+            </select>
+          </div>
+          <div>
+            <label>Action</label>
+            <select id="ruleAction">
+              <option value="fill">fill</option>
+              <option value="check">check checkbox/radio</option>
+              <option value="select">select option</option>
+            </select>
+          </div>
+        </div>
+        <div class="row two">
+          <div>
+            <label>Generated key</label>
+            <select id="ruleValueKey"></select>
+            <p class="hint">Used when source is Generated, and available inside templates as <code>{{key}}</code>.</p>
+          </div>
+          <div>
+            <label>Fixed value</label>
+            <textarea id="ruleFixedValue" class="smallText" spellcheck="false" placeholder="Example: abuse@example.com, IP Infringement, trademark, yes"></textarea>
+          </div>
+        </div>
+        <div class="row">
+          <label>Value template</label>
+          <textarea id="ruleTemplate" class="smallText" spellcheck="false" placeholder="Example: Domain: {{domain}}&#10;&#10;{{notice_text}}"></textarea>
+          <p class="hint">Use source Template when this field needs a custom mix. With source Generated, leaving this blank uses the selected generated key directly.</p>
+        </div>
+        <div class="row compact-grid">
+          <button id="addRuleBtn" class="primary">Add rule</button>
+          <button id="updateRuleBtn">Update selected</button>
+          <button id="duplicateRuleBtn">Duplicate</button>
+          <button id="deleteRuleBtn" class="danger">Delete selected</button>
+        </div>
+      </div>
+
+      <div class="card grow">
+        <h2>Current rules</h2>
+        <table id="rulesTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>On</th>
+              <th>Input id</th>
+              <th>Source</th>
+              <th>Value/key</th>
+              <th>Action</th>
+              <th>Preview</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="row compact-grid">
+          <button id="moveUpBtn">Move up</button>
+          <button id="moveDownBtn">Move down</button>
+          <button id="toggleRuleBtn">Toggle on/off</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="fieldsTab" class="tab-panel">
+      <div class="card">
+        <h2>Detected fields on current page</h2>
+        <p class="hint">Only fields with an <code>id</code> can be filled by this version. Fields without id are shown for debugging only.</p>
+        <table id="fieldsTable">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>tag/type</th>
+              <th>name</th>
+              <th>label / placeholder</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="jsonTab" class="tab-panel">
+      <div class="card">
+        <h2>Profile JSON</h2>
+        <p class="hint">This is the saved URL rule profile. It stores both fixed fields and Python-generated fields, so after a queue item is selected you can fill immediately.</p>
+        <textarea id="profileJson" spellcheck="false"></textarea>
+        <div class="row compact-grid">
+          <button id="applyProfileJsonBtn">Apply JSON</button>
+          <button id="copyProfileJsonBtn">Copy JSON</button>
+          <button id="exportProfileBtn">Download JSON</button>
+          <label class="fileBtn">Import JSON<input type="file" id="importProfileFile" accept="application/json,.json" /></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>All saved profiles</h2>
+        <div id="profilesList" class="profilesList"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

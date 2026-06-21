@@ -1,0 +1,49 @@
+{
+  "id": "example-flexible-profile",
+  "profile_name": "Example flexible abuse form",
+  "url_match": "https://example.com/abuse*",
+  "rules": [
+    {
+      "enabled": true,
+      "field_id": "reporter_name",
+      "source": "fixed",
+      "fixed_value": "BrandShield Ltd.",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "reporter_email",
+      "source": "fixed",
+      "fixed_value": "brandprotection@example.com",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "category",
+      "source": "fixed",
+      "fixed_value": "Intellectual Property",
+      "action": "select"
+    },
+    {
+      "enabled": true,
+      "field_id": "subject",
+      "source": "template",
+      "value_template": "IP rights infringement - {{domain}}",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "urls",
+      "source": "generated",
+      "value_key": "action_url_list",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "message",
+      "source": "generated",
+      "value_key": "notice_text",
+      "action": "fill"
+    }
+  ]
+}

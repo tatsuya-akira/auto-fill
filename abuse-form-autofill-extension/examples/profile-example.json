@@ -1,0 +1,28 @@
+{
+  "id": "example-profile",
+  "profile_name": "Example abuse form",
+  "url_match": "https://example.com/abuse*",
+  "rules": [
+    {
+      "enabled": true,
+      "field_id": "subject",
+      "value_key": "subject",
+      "value_template": "",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "message",
+      "value_key": "notice_text",
+      "value_template": "",
+      "action": "fill"
+    },
+    {
+      "enabled": true,
+      "field_id": "urls",
+      "value_key": "action_url_list",
+      "value_template": "",
+      "action": "fill"
+    }
+  ]
+}

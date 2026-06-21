@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Abuse Form Autofill Mapper",
+  "version": "0.3.0",
+  "description": "Automatically load the latest Python queue item and fill abuse forms on page load using the last saved profile and fixed/generated rules.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "action": {
+    "default_title": "Abuse Form Autofill",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

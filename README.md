@@ -1,215 +1,38 @@
-# Notice Data Printer
+# Notice Python + Extension Bridge - Auto Fill On Page Load
 
-Tool này chỉ làm bước **print data trước** khi đưa qua Chrome extension autofill.
-Nó không fill form, không submit form. Bản này dùng `tldextract` để parse domain chính xác hơn, thay vì hard-code các suffix như `co.za`, `com.au`, `com.br`.
+This package contains:
 
-## Cài dependency
+- `notice-data-printer/` - Python GUI that generates notice data and queues it to the local bridge.
+- `abuse-form-autofill-extension/` - Chrome extension that can auto-fill the current abuse form.
 
-```bash
-pip install -r requirements.txt
-```
+## New behavior
 
-Tool dùng `tldextract.TLDExtract(suffix_list_urls=())`, nên không cần gọi network lúc chạy. Nó dùng Public Suffix List snapshot đi kèm package.
+After you save a profile once, the extension can automatically fill the page when the abuse form loads:
 
-## Template hiện có
+1. Python GUI renders the notice.
+2. Click **Queue mapped** in the Python GUI.
+3. Open/reload the abuse form page.
+4. The extension content script notifies the background worker.
+5. Background worker loads the latest queue item from `http://127.0.0.1:8765`.
+6. Background worker chooses the last used profile if it matches the current URL; otherwise it falls back to a profile whose URL pattern matches the current page.
+7. It fills fixed, generated, and template/mixed rules automatically.
 
-```bash
-python print_notice_data.py --list-templates
-```
+No popup button is required for normal use.
 
-Các template được lấy từ file bạn đưa:
+## Safety rule
 
-- `sponsor` - IP rights / Zepbound sponsor-style notice
-- `unapproved_retatrutide` - Retatrutide unapproved product notice
-- `newtag` - compounded tirzepatide misleading claims notice
-- `us_newtag` - US new tag / platform notice with `[USER]`
-- `us_label` - US label violation / name on product label notice
+Auto-fill only runs when a saved profile matches the current page URL. This avoids filling random pages with the previously used profile.
 
-## Một URL
+## Disable auto-fill
 
-```bash
-python print_notice_data.py --template unapproved --url https://mounjarosa.co.za
-```
+Open the extension popup and uncheck:
 
-## Nhiều URL bằng file TXT
+`Auto-fill on page load using latest queue + last used profile`
 
-Tạo file TXT, mỗi dòng một URL:
+## Manual fallback
 
-```txt
-https://slimvials.com/collections/all-products
-https://slimvials.com/products/mounjaro%C2%AE-injectable-pen-copy-copy-copy
-https://slimvials.com/products/retatrutide-synedica
-https://slimvials.com/products/vls-retatrutide-20-mg-prefilled-pen
-```
+The popup still has a manual button:
 
-Có thể dùng dòng trống hoặc comment bắt đầu bằng `#`; tool sẽ bỏ qua.
+`Manual: latest queue + last profile + fill`
 
-Chạy:
-
-```bash
-python print_notice_data.py \
-  --template us_label \
-  --urls-file examples/urls.txt \
-  --name-on-label slimvials
-```
-
-Khi có nhiều URL, tool tạo 2 field khác nhau:
-
-- `urls`: các URL gốc từ file TXT.
-- `action_urls`: danh sách dùng để thay vào `[LIST URL FOR SPECIFIC ACTION]`; mặc định tự thêm homepage/root lên đầu.
-
-Ví dụ output:
-
-```json
-{
-  "urls": [
-    "https://slimvials.com/collections/all-products",
-    "https://slimvials.com/products/retatrutide-synedica"
-  ],
-  "action_urls": [
-    "https://slimvials.com",
-    "https://slimvials.com/collections/all-products",
-    "https://slimvials.com/products/retatrutide-synedica"
-  ],
-  "action_url_list": "https://slimvials.com\nhttps://slimvials.com/collections/all-products\nhttps://slimvials.com/products/retatrutide-synedica"
-}
-```
-
-Trong notice text, placeholder `[LIST URL FOR SPECIFIC ACTION]` sẽ thành nhiều dòng:
-
-```txt
-https://slimvials.com
-https://slimvials.com/collections/all-products
-https://slimvials.com/products/retatrutide-synedica
-```
-
-## Nhiều URL bằng nhiều flag `--url`
-
-```bash
-python print_notice_data.py \
-  --template us_label \
-  --url https://slimvials.com/collections/all-products \
-  --url https://slimvials.com/products/retatrutide-synedica \
-  --name-on-label slimvials
-```
-
-## Print text notice only
-
-```bash
-python print_notice_data.py --template unapproved --urls-file examples/retatrutide-urls.txt --format text
-```
-
-## Claims / evidence lines
-
-```bash
-python print_notice_data.py \
-  --template newtag \
-  --url https://example.com/post/123 \
-  --claim "Same active ingredient as Mounjaro and Zepbound." \
-  --claim "Clinically proven weight loss support."
-```
-
-Hoặc dùng file TXT:
-
-```bash
-python print_notice_data.py \
-  --template newtag \
-  --url https://example.com/post/123 \
-  --claims-file examples/claims.txt
-```
-
-## Case JSON input
-
-```bash
-python print_notice_data.py --case examples/multi-us-label.json
-```
-
-## Save output
-
-```bash
-python print_notice_data.py \
-  --case examples/single-retatrutide.json \
-  --save-json output/case-data.json \
-  --save-text output/notice.txt
-```
-
-## Domain parsing
-
-Tool tự derive các field sau từ URL đầu tiên:
-
-```json
-{
-  "domain": "mounjarosa.co.za",
-  "domain_label": "mounjarosa",
-  "homepage_url": "https://mounjarosa.co.za"
-}
-```
-
-Ví dụ khác:
-
-```txt
-https://shop.slimvials.com/products/x      -> slimvials.com / slimvials
-https://a.b.example.com.au/product        -> example.com.au / example
-```
-
-Nếu cần override domain thủ công:
-
-```bash
-python print_notice_data.py --template unapproved --url https://x.y.example.com.au/path --domain example.com.au
-```
-
-## Output chính
-
-```json
-{
-  "case_data": {},
-  "rendered": {
-    "subject": "...",
-    "notice_text": "..."
-  },
-  "extension_payload": {
-    "fill_values": {
-      "domain": "...",
-      "url": "...",
-      "urls": [],
-      "action_urls": [],
-      "action_url_list": "...",
-      "subject": "...",
-      "notice_text": "..."
-    },
-    "mapping_ready": true
-  },
-  "unresolved_placeholders": []
-}
-```
-
-## Data field dùng cho extension sau này
-
-Trong `extension_payload.fill_values`, extension có thể map các field này vào form:
-
-- `domain`
-- `url`
-- `urls`
-- `action_urls`
-- `homepage_url`
-- `url_list`
-- `action_url_list`
-- `subject`
-- `notice_text`
-- `user`
-- `claims_text`
-- `name_on_product_label`
-- `recipient_type`
-
-Ví dụ form mapping sau này:
-
-```json
-{
-  "fields": [
-    { "findBy": "selector", "selector": "input[name='domain']", "value": "{{domain}}" },
-    { "findBy": "selector", "selector": "input[name='subject']", "value": "{{subject}}" },
-    { "findBy": "selector", "selector": "textarea[name='message']", "value": "{{notice_text}}" }
-  ]
-}
-```
-#
+Use it when a form renders late or if you want to test a profile manually.

@@ -1,0 +1,18 @@
+{
+  "profile_name": "example",
+  "template_match": "templates/us_label.txt",
+  "rules": [
+    {
+      "[DOMAIN]": "hehe.com"
+    },
+    {
+      "[USER]": "hehe"
+    },
+    {
+      "[the seller]": "{{hostname}}"
+    },
+    {
+      "[NAME ON PRODUCT LABEL]": "{{domain_label}}"
+    }
+  ]
+}
